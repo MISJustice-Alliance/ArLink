@@ -1,11 +1,11 @@
-# README.md - ArweaveStamp v3: Trustless Document Authenticity + Physical Delivery
+# ArweaveStamp: Trustless Document Authenticity + Physical Delivery
 **Complete Document Lifecycle Management: Digital → Blockchain → Physical Mail with Cryptographic Lineage**
 
 ---
 
 ## 🎯 Project Overview
 
-**ArweaveStamp v3** is a four-phase platform that transforms document verification from digital-only to a complete lifecycle that bridges blockchain attestation with tamper-proof physical delivery:
+**ArweaveStamp** is a four-phase platform that transforms document verification from digital-only to a complete lifecycle that bridges blockchain attestation with tamper-proof physical delivery:
 
 1. **Phase 1 (Weeks 1-16)**: CLI tool for document attestation
    - Upload documents to immutable Arweave storage
@@ -182,9 +182,9 @@ npm run cli -- mail receipt job-abc123 --format pdf > delivery_receipt.pdf
 │ Integration Layer                                    │
 ├──────────────────────────────────────────────────────┤
 │ Arweave (storage) | Claude (analysis)                │
-│ Witnet (oracle)  | Ethereum/Polygon/Avax            │
-│ Chokidar (file watching) | PostGrid (print/mail)    │
-│ Stripe (payments) | BTCPay (crypto) | OCR service   │
+│ Witnet (oracle)  | Ethereum/Polygon/Avax             │
+│ Chokidar (file watching) | PostGrid (print/mail)     │
+│ Stripe (payments) | BTCPay (crypto) | OCR service    │
 │ Carrier APIs (tracking)                              │
 └──────────────────────────────────────────────────────┘
 ```
