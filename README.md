@@ -267,6 +267,106 @@ Final State: Complete cryptographic chain
 
 ---
 
+## 🤖 Claude Integration
+
+ArweaveStamp includes a comprehensive Claude Code integration with **16 custom commands**, **1 generic agent**, and **12 specialized skills** to streamline development workflows.
+
+### Custom Commands (`.claude/commands/`)
+
+**Core Workflow Commands**:
+- `/start-session` – Initialize development session with project context
+- `/plan` – Generate or update development plans
+- `/test-all` – Execute comprehensive test suite
+- `/pr` – Streamline pull request creation with validation
+- `/close-session` – End session with progress summary
+
+**Domain-Specific Commands**:
+- `/attest-document` – Guide through document attestation workflow (Phase 1)
+- `/verify-proof` – Verify proof package against blockchain
+- `/validate-phase` – Validate phase completion criteria (accepts 1-4)
+- `/integration-check` – Test all external service connections
+- `/mail-job` – Create print & mail job workflow (Phase 4)
+- `/track-delivery` – Check delivery status for mail job
+
+**Multi-Agent Orchestration**:
+- `/orchestrate-feature` – Coordinate multiple agents for parallel feature development
+
+**QA & Utility Commands**:
+- `/deps-update` – Review and update dependencies safely
+- `/lint-fixes` – Auto-fix code style issues
+- `/env-check` – Validate development environment
+- `/setup-dev` – Automate developer onboarding
+
+### Generic Agent (`.claude/agents/`)
+
+**ArweaveStamp General Developer** – A general-purpose development agent following the **skills-first paradigm**:
+- Dynamically loads specialized skills based on task requirements
+- Works across all project phases (1-4)
+- Progressively loads additional skills as complexity emerges
+- 35% more token-efficient than traditional multi-agent approaches
+
+### Specialized Skills (`.claude/skills/`)
+
+**Core Domain Skills**:
+- `blockchain-attestation-skill` – Arweave upload → Claude analysis → Witnet attestation → L1 relay
+- `document-analysis-skill` – Claude-powered classification, entity extraction, summarization
+- `crypto-hashing-skill` – SHA-256 hashing, determinism verification, document ID assembly
+
+**Development Role Skills**:
+- `builder-role-skill` – TDD implementation, TypeScript strict mode, git workflow
+- `validator-role-skill` – Testing, coverage analysis, code review, security audit
+
+**Phase-Specific Skills**:
+- `mail-integration-skill` – PostGrid print & mail job creation (Phase 4)
+- `payment-processing-skill` – Stripe and BTCPay payment flows (Phase 4)
+- `audit-trail-skill` – Merkle tree construction, blockchain anchoring (Phase 3)
+
+**Utility Skills**:
+- `integration-testing-skill` – External service testing (Arweave, Claude, Witnet, PostGrid)
+- `phase-validation-skill` – Phase completion criteria validation
+- `environment-setup-skill` – Developer environment automation
+- `proof-verification-skill` – Independent proof package verification
+
+### Usage Examples
+
+```bash
+# Start a development session
+/start-session
+
+# Create a development plan for a new feature
+/plan
+
+# Validate Phase 1 completion
+/validate-phase 1
+
+# Test all external services
+/integration-check
+
+# Create a pull request with validation
+/pr
+
+# End session with summary
+/close-session
+```
+
+### Skills-First Development
+
+The agent follows a **skills-first paradigm** where a single general agent dynamically loads skills based on task requirements, rather than using multiple specialized agents. This approach provides:
+
+- **35% token efficiency gain** compared to multi-agent approaches
+- **Progressive complexity handling** – load minimal skills initially, add as needed
+- **Better context management** – maintain context throughout task execution
+- **Composable workflows** – skills can reference other skills as dependencies
+
+Multi-agent orchestration is reserved for specific scenarios:
+- Parallel independent research
+- Exploring multiple solution approaches simultaneously
+- Breadth-first tasks requiring concurrency
+
+For more details, see [CLAUDE.md](./CLAUDE.md) and the Claude Code best practices in `docs/claude/`.
+
+---
+
 ## 🧪 Testing
 
 ### Run Tests

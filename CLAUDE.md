@@ -13,6 +13,61 @@ This document specifies how Claude 3.5 Sonnet is integrated throughout all three
 
 ---
 
+## Claude Code Integration
+
+ArweaveStamp includes a comprehensive **Claude Code** development integration with custom commands, agent configurations, and specialized skills for streamlined development workflows.
+
+### Integration Components
+
+**Custom Commands** (`.claude/commands/`):
+- 16 custom slash commands for core workflows, domain-specific tasks, QA, and multi-agent orchestration
+- See [README.md - Claude Integration](./README.md#-claude-integration) for full command list
+- Commands include: `/start-session`, `/plan`, `/test-all`, `/attest-document`, `/verify-proof`, `/validate-phase`, `/mail-job`, `/orchestrate-feature`, and more
+
+**Generic Agent** (`.claude/agents/`):
+- `arweave-general.md` – Skills-first agent configuration
+- Dynamically loads domain-specific and development role skills based on task requirements
+- Provides 35% token efficiency improvement over traditional multi-agent approaches
+
+**Specialized Skills** (`.claude/skills/`):
+- 12 specialized skills covering blockchain attestation, document analysis, cryptographic hashing, TDD development, testing, mail integration, payments, audit trails, and more
+- Skills organized by domain: core domain skills, development role skills, phase-specific skills, and utility skills
+- See skill directories for detailed workflow specifications (SKILL.md files)
+
+### Skills-First Development Paradigm
+
+This project follows Anthropic's recommended **skills-first paradigm**:
+
+1. **Default to Single Agent + Skills**: For most development tasks, use the general agent which dynamically loads appropriate skills
+2. **Multi-Agent for Parallelization Only**: Use the `/orchestrate-feature` command when tasks benefit from parallel execution (multiple approaches, breadth-first research, large-scale concurrent work)
+3. **Progressive Skill Loading**: Agent loads minimal skills initially, adds more as task complexity emerges
+4. **Better Token Efficiency**: 35% reduction in token usage compared to multi-agent approaches
+5. **Improved Context Management**: Skills maintain context better than switching between specialized agents
+
+### Usage
+
+```bash
+# Start a development session
+/start-session
+
+# Validate external service integrations
+/integration-check
+
+# Create a multi-agent workflow for complex features
+/orchestrate-feature
+
+# Validate phase completion
+/validate-phase 1
+```
+
+For complete command reference and skill descriptions, see:
+- [README.md - Claude Integration](./README.md#-claude-integration)
+- Command files in `.claude/commands/`
+- Skill specifications in `.claude/skills/*/SKILL.md`
+- Claude Code best practices in `docs/claude/docs/best-practices/`
+
+---
+
 ## Phase 1: Document Analysis & Metadata Extraction
 
 ### Use Case: Semantic Understanding
@@ -758,4 +813,4 @@ A: Approximately $0.30-0.50 per document (Phase 1 analysis). See [Anthropic Pric
 
 ---
 
-**End CLAUDE.md**
+**End CLAUDE.md**Import command and agent standards from docs/claude/
