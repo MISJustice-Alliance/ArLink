@@ -1,5 +1,5 @@
 # ARCHITECTURE.md - System Design & Data Structures
-**Arweave + Witnet Authenticity Platform - Complete System**
+**Arweave + Chainlink Authenticity Platform - Complete System**
 
 ---
 
@@ -7,7 +7,7 @@
 
 ArweaveStamp is a three-phase document authenticity platform that evolves from point-in-time attestation (Phase 1-2) to continuous lifecycle verification (Phase 3).
 
-- **Phase 1 (Weeks 1-16)**: Upload documents → Arweave → Claude analysis → Witnet oracle → Proof
+- **Phase 1 (Weeks 1-16)**: Upload documents → Arweave → Claude analysis → Chainlink oracle → Proof
 - **Phase 2 (Weeks 4-28)**: Web dashboard for proof management and verification
 - **Phase 3 (Weeks 17-24)**: File monitoring daemon with smart policies and audit trails
 
@@ -21,28 +21,28 @@ ArweaveStamp is a three-phase document authenticity platform that evolves from p
 User                 CLI            Storage         Analysis        Oracle          Proof
   │                   │               │                │               │              │
   │ stamp <file>      │               │                │               │              │
-  ├──────────────────>│               │                │               │              │
+  ├────────────>│               │                │               │              │
   │                   │ read file     │                │               │              │
-  │                   ├──────────────>│                │               │              │
-  │                   │<──────────────┤ (hash+content) │               │              │
+  │                   ├─────────>│                │               │              │
+  │                   │<─────────│ (hash+content) │               │              │
   │                   │               │                │               │              │
   │                   │ upload + attest│               │               │              │
-  │                   ├──────────────────────────────>│               │              │
-  │                   │<──────────────────────────────┤ (classification)            │
+  │                   ├──────────────────>│               │              │
+  │                   │<──────────────────│ (classification)│              │
   │                   │               │                │               │              │
   │                   │ compute SHA-256               │               │              │
-  │                   ├──────────────>│               │               │              │
+  │                   ├─────────>│               │               │              │
   │                   │ + documentId  │               │               │              │
-  │                   │<──────────────┤               │               │              │
-  │                   │               │               │ submit request│              │
-  │                   │               │               ├──────────────>│              │
-  │                   │               │               │<──────────────┤ finalized   │
-  │                   │               │               │               ├─────────────>│
-  │                   │               │               │               │ generate   │
-  │                   │               │               │               │<─────────────┤
-  │ ProofPackage      │               │               │               │              │
-  │<──────────────────┤               │               │               │              │
-  │ (JSON + stores)   │               │               │               │              │
+  │                   │<─────────│               │               │              │
+  │                   │               │ submit to Chainlink│               │
+  │                   │               │                ├──────────>│              │
+  │                   │               │                │<────────── attestationId   │
+  │                   │               │                │               ├─────>│
+  │                   │               │                │               │ generate proof│
+  │                   │               │                │               │<─────│
+  │ ProofPackage      │               │                │               │              │
+  │<────────────│               │                │               │              │
+  │ (JSON + stores)   │               │                │               │              │
 ```
 
 ### Data Structure: ProofPackage (Phase 1)
@@ -93,16 +93,11 @@ interface ProofPackage {
     canonicalization: 'deterministic-json'; // Ensures reproducibility
   };
 
-  // Phase 1: Oracle Layer
-  witnet: {
-    requestId: string;                      // Witnet request ID
-    taskId: string;                         // HTTP task for relay
-    report: {
-      reportId: string;                     // Witnet report ID
-      result: string;                       // Serialized proof
-      timestamp: ISO8601;
-      finality: 'finalized' | 'pending';
-    };
+  // Phase 1: Oracle Layer (Chainlink)
+  chainlink: {
+    attestationId: string;                  // Unique attestation identifier
+    sourceChain: 'ethereum';                // Primary chain
+    ccipMessageId: string;                  // Cross-chain message ID
     multichain: {
       [chain: string]: {                    // e.g., 'ethereum', 'polygon', 'avalanche'
         blockNumber: number;
@@ -124,14 +119,14 @@ interface ProofPackage {
   verification: {
     arweaveVerified: boolean;
     hashesVerified: boolean;
-    witnetFinalized: boolean;
+    chainlinkFinalized: boolean;
     multiChainConfirmed: Record<string, boolean>;
     overallStatus: 'verified' | 'pending' | 'failed';
   };
 }
 ```
 
-### Data Flow: File → Hash → Witnet → Blockchains
+### Data Flow: File → Hash → Chainlink → Blockchains
 
 ```
 Original File (PDF, Image, etc.)
@@ -147,31 +142,23 @@ Original File (PDF, Image, etc.)
   │
   ├─> Combine: SHA-256(fileHash + metadataHash) = documentId
   │
-  ├─> Create Witnet HTTP task:
-  │   GET https://arweave.net/{txId}
-  │   Parse file, verify hash
-  │   Return: "Hash verified: true"
-  │
-  ├─> Submit to Witnet
-  │   └─> Witnet finalizes request
-  │   └─> Witnet relays to multiple blockchains:
-  │       ├─ Ethereum (L1)
-  │       ├─ Polygon (L2)
-  │       └─ Avalanche (L1)
+  ├─> Submit to Chainlink:
+  │   └─> Send arweaveUrl + documentId to Ethereum router
+  │   └─> Chainlink processes attestation
+  │   └─> CCIP relays to Polygon + Avalanche automatically
   │
   └─> Generate ProofPackage
-      └─> Verifiable: Arweave + Claude + Witnet + 3 L1 chains
+      └─> Verifiable: Arweave + Claude + Chainlink + 3 L1 chains
 ```
 
 ### Cryptographic Guarantees (Phase 1)
 
 | Layer | Hash Algorithm | Security Level | Immutability |
-|-------|----------------|----------------|--------------|
-| File Integrity | SHA-256 | 256-bit (2^256 work to collision) | Once hashed, any change detected |
+|-------|----------------|----------------|--------------|n| File Integrity | SHA-256 | 256-bit (2^256 work to collision) | Once hashed, any change detected |
 | Metadata | SHA-256 | 256-bit | Claude analysis snapshot |
 | DocumentId | SHA-256(hash1 + hash2) | 512-bit effective | Combines file + metadata |
 | Arweave Storage | Bundler fees (PoW) | Requires re-mining blocks | Transaction finalized in ~30 min |
-| Witnet Oracle | Multiple witness nodes | Requires majority collusion | Report finalized after 100+ confirmations |
+| Chainlink Oracle | Multiple witness nodes | Chainlink DON consensus | Report finalized after CCIP relay |
 | L1 Blockchains | PoW (Eth/Avax) / PoS (Polygon) | Network consensus | After 12+ block confirmations |
 
 ---
@@ -181,27 +168,27 @@ Original File (PDF, Image, etc.)
 ### System Diagram: Phase 1 + Phase 2
 
 ```
-┌─────────────────────────────────────────────┐
-│ Phase 1: CLI (Still Running)                │
-│ ├─ stamp command                            │
-│ ├─ verify command                           │
-│ └─ batch processing                         │
-└──────────────────┬──────────────────────────┘
-                   │ (Both write to same database)
-                   ▼
-        ┌──────────────────────┐
+┌──────────────────────┐
+│ Phase 1: CLI (Still Running)      │
+│ ├─ stamp command                │
+│ ├─ verify command               │
+│ └─ batch processing             │
+└────────────┬──────────┐
+                     │ (Both write to same database)
+                     ▼
+        ┌────────────┐
         │ Proof Database       │
         │ (SQLite Phase 2)     │
         │ (PostgreSQL Phase 3) │
-        └──────────────────────┘
-                   ▲
-    ┌──────────────┼──────────────┐
+        └────────────┘
+                     │
+    ┌────────────────┐
     │              │              │
     ▼              ▼              ▼
-┌────────┐  ┌────────────┐  ┌────────────┐
-│Express │  │React       │  │CLI         │
-│Backend │  │Dashboard   │  │(Phase 1)   │
-└────────┘  └────────────┘  └────────────┘
+┌─────┐  ┌───────┐  ┌───┐
+│Express│  │React      │  │CLI  │
+│Backend│  │Dashboard  │  │    │
+└─────┘  └───────┘  └───┘
 ```
 
 ### API Endpoints (Phase 2)
@@ -282,9 +269,9 @@ CREATE TABLE proofs (
   claudeSummary TEXT,
   documentType TEXT,
   confidence REAL,
-  witnetRequestId TEXT,
-  witnetReportId TEXT,
-  witnetFinalized BOOLEAN,
+  chainlinkAttestationId TEXT,
+  chainlinkSourceChain TEXT,
+  chainlinkFinalized BOOLEAN,
   ethereumTxHash TEXT,
   ethereumConfirmed BOOLEAN,
   polygonTxHash TEXT,
@@ -330,7 +317,7 @@ User's File System
   │   └─ Size change?
   │
   ├─> Actions triggered:
-  │   ├─ Witnet re-attestation (automatic)
+  │   ├─ Chainlink re-attestation (automatic)
   │   ├─ Email alert to admin
   │   ├─ Snapshot to Arweave
   │   └─ Log to audit trail
@@ -340,7 +327,7 @@ User's File System
       ├─ File hash (before + after)
       ├─ Policy action
       ├─ Merkle root
-      └─ Witnet anchor (every 15 min)
+      └─ Chainlink anchor (every 15 min)
 ```
 
 ### FileEvent Type (Phase 3)
@@ -392,7 +379,7 @@ interface Policy {
   
   // Actions to execute
   actions: Array<{
-    type: 'witnet-reattestor' | 'email' | 'snapshot' | 'quarantine' | 'custom';
+    type: 'chainlink-reattestor' | 'email' | 'snapshot' | 'quarantine' | 'custom';
     enabled: boolean;
     config: Record<string, any>;            // Action-specific config
     timeout?: number;                       // Max execution time (ms)
@@ -444,13 +431,12 @@ interface AuditEntry {
     }>;
   };
   
-  // Witnet anchoring (if re-attested)
-  witnetProof?: {
-    requestId: string;
-    reportId: string;
+  // Chainlink re-attestation (if triggered)
+  chainlinkProof?: {
+    attestationId: string;
+    sourceChain: 'ethereum';
     finalized: boolean;
-    l1Chain: 'ethereum' | 'polygon' | 'avalanche';
-    l1TxHash: string;
+    l1Chains: { ethereum: tx, polygon: tx, avalanche: tx };
   };
   
   // Merkle chain
@@ -460,7 +446,7 @@ interface AuditEntry {
   // Verification status
   verification: {
     integrityVerified: boolean;             // Hash chain unbroken
-    blockchainVerified: boolean;            // Witnet anchored + confirmed
+    chainlinkVerified: boolean;             // Chainlink attestation confirmed
     verifiedAt?: ISO8601;
   };
 }
@@ -475,16 +461,16 @@ Audit Entries (chronological):
    ▼         ▼         ▼         ▼        ▼
  Hash1    Hash2    Hash3    Hash4 ...  HashN
    │         │         │         │        │
-   └─────┬───┘         └──┬──────┘        │
+   └─────┬─────      └──┬──────        │
         │               │                  │
-       H12             H34 ...            HN
+       H12             H34 ...                │
         │               │                  │
-        └───────┬───────┘                  │
+        └─────┬─────                  │
                H1234 ...                   │
                 │                          │
-                └──────────┬───────────────┘
+                └──────┬──────────│
                           MerkleRoot
-                    (Anchored to Witnet
+                    (Anchored to Chainlink
                      every 15 min / 10K entries)
 ```
 
@@ -492,7 +478,7 @@ Audit Entries (chronological):
 - Append-only: New entries always appended, never modified
 - Tamper-proof: Changing any entry changes all downstream hashes
 - Efficient verification: O(log N) to verify entry position
-- Independent: Verifiable using only Merkle root + Witnet/blockchain data
+- Independent: Verifiable using only Merkle root + Chainlink data
 
 ### Audit Log Anchoring Strategy
 
@@ -502,10 +488,10 @@ Timeline:
 ├─ 15:15: 10,000 entries collected
 │         ├─ Construct Merkle tree
 │         ├─ Calculate root: abc123def456...
-│         ├─ Submit to Witnet: "Anchor: abc123def456..."
-│         └─ Witnet finalizes (100+ confirmations)
+│         ├─ Submit to Chainlink: "Anchor: abc123def456..."
+│         └─ Chainlink finalizes (CCIP relay to 3 chains)
 │
-├─ 15:16: Witnet relay to L1 chains
+├─ 15:16: Chainlink relay to L1 chains
 │         ├─ Ethereum: tx 0xabc...
 │         ├─ Polygon:  tx 0xdef...
 │         └─ Avalanche: tx 0x123...
@@ -520,40 +506,40 @@ Verification:
 Entry N in interval 2:
   1. Find Entry N in audit log
   2. Calculate Merkle path to root (xyz789...)
-  3. Verify root anchored to Witnet in Ethereum/Polygon/Avalanche
-  4. ✓ Entry verified as authentic
+  3. Verify root anchored to Chainlink in Ethereum/Polygon/Avalanche
+  4. ✅ Entry verified as authentic
 ```
 
 ### Multi-Server Agent Architecture (Phase 3)
 
 ```
-┌──────────────────────────────────────────────────┐
-│ Central Vault (Secure)                           │
-│ ├─ Configuration storage                         │
-│ ├─ Credential storage (encrypted)                │
-│ ├─ Audit log collection                          │
-│ └─ Merkle tree anchor coordination               │
-└──────────────────────────────────────────────────┘
+┌────────────────────────────────┐
+│ Central Vault (Secure)                  │
+│ ├─ Configuration storage                 │
+│ ├─ Credential storage (encrypted)         │
+│ ├─ Audit log collection                  │
+│ └─ Merkle tree anchor coordination        │
+└────────────────────┬────────────┘
          │                │                │
     (mTLS)           (mTLS)           (mTLS)
          │                │                │
-    ┌────▼─────┐     ┌────▼─────┐    ┌────▼─────┐
+    ┌───▼───┐     ┌───▼───┐    ┌───▼───┐
     │Agent 1   │     │Agent 2   │    │Agent 3   │
     │Server A  │     │Server B  │    │Server C  │
-    │/data     │     │/data     │    │/data     │
-    │watched   │     │watched   │    │watched   │
-    └────┬─────┘     └────┬─────┘    └────┬─────┘
+    │/data    │     │/data    │    │/data    │
+    │watched  │     │watched  │    │watched  │
+    └───┬───┘     └───┬───┘    └───┬───┘
          │                │               │
     File events     File events      File events
     audit events    audit events     audit events
          │                │               │
-         └────────────────┼───────────────┘
+         └─────────┬──────────┬─────────┘
                           │
                   [Central Collection]
                           │
                   [Merkle Tree Construction]
                           │
-                  [Witnet/L1 Anchoring]
+                  [Chainlink/L1 Anchoring]
 ```
 
 **Communication**:
@@ -575,7 +561,7 @@ Entry N in interval 2:
   storage: { url, txId },
   analysis: { classification, entities },
   integrity: { fileHash, metadataHash },
-  witnet: { requestId, report, multichain }
+  chainlink: { attestationId, sourceChain, multichain }
 }
 
 // Phase 3: Same ProofPackage enhanced with monitoring
@@ -596,8 +582,7 @@ Entry N in interval 2:
       timestamp: ISO8601,
       trigger: "file:modified",
       newHash: "xyz789...",
-      witnetRequestId: "req-456...",
-      witnetReportId: "report-789..."
+      chainlinkAttestationId: "attest-456..."
     }
   ],
   
@@ -607,7 +592,7 @@ Entry N in interval 2:
     lastEventAt: ISO8601,
     merkleRoot: "def456...",
     anchors: [
-      { timestamp, witnetReportId, l1: { ethereum: tx, polygon: tx } }
+      { timestamp, chainlinkAttestationId, l1: { ethereum: tx, polygon: tx } }
     ]
   }
 }
@@ -623,7 +608,7 @@ Entry N in interval 2:
 | File upload to Arweave | <30s (100MB) | TBD |
 | Claude analysis | <10s per doc | TBD |
 | Hash computation | <500ms (1GB) | TBD |
-| Witnet finalization | <5 min | TBD |
+| Chainlink attestation | <5 min | TBD |
 | L1 confirmation | <15 min | TBD |
 
 ### Phase 3 Benchmarks
@@ -641,7 +626,7 @@ Entry N in interval 2:
 - **Phase 1**: Single user, <100 documents
 - **Phase 2**: Multiple users, <10K documents, SQLite
 - **Phase 3**: Distributed agents, 100K+ documents, PostgreSQL
-- **Post-Launch**: 1M+ documents, sharded database, multiple Witnet nodes
+- **Post-Launch**: 1M+ documents, sharded database, multiple Chainlink nodes
 
 ---
 
@@ -649,7 +634,7 @@ Entry N in interval 2:
 
 ### Trust Assumptions
 1. **Arweave Network**: Majority of nodes honest (PoW consensus)
-2. **Witnet Network**: Majority of witnesses honest (stake-based)
+2. **Chainlink DON**: Majority of witnesses honest (stake-based)
 3. **L1 Blockchains**: Network consensus secure (Eth PoW, Polygon PoS, Avax PoW)
 4. **Local System**: Filesystem watcher process not compromised
 5. **User**: Provides correct private keys, doesn't share credentials
@@ -657,12 +642,12 @@ Entry N in interval 2:
 ### Threat Model (Phase 3)
 
 | Threat | Severity | Mitigation |
-|--------|----------|-----------|
+|--------|----------|------------|
 | File modified locally (post-attestation) | Medium | Phase 3 monitoring detects + re-attests |
 | Audit log tampering | High | Merkle chain prevents undetected changes |
 | Policy engine compromise | High | Sandboxing + code review |
 | mTLS certificate expiration | Medium | Automated rotation + monitoring |
-| Witnet witness collusion | Low | Majority assumption + L1 anchoring |
+| Chainlink witness collusion | Low | Majority assumption + L1 anchoring |
 | Arweave storage loss | Low | Redundancy across multiple nodes |
 
 ---
