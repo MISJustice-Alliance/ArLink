@@ -10,7 +10,7 @@
 1. **Phase 1 (Weeks 1-16)**: CLI tool for document attestation
    - Upload documents to immutable Arweave storage
    - Analyze with Claude for semantic metadata
-   - Cryptographic proof via Witnet oracle
+   - Cryptographic proof via Chainlink oracle
    - Multichain attestation (Ethereum, Polygon, Avalanche)
 
 2. **Phase 2 (Weeks 4-28)**: Web dashboard for proof management
@@ -26,7 +26,7 @@
 
 4. **Phase 4 (Weeks 25-40)**: Physical Mail Integration ⭐ **NEW**
    - PostGrid Print & Mail API integration
-   - Cryptographic QR codes embedding Arweave + Witnet references
+   - Cryptographic QR codes embedding Arweave + Chainlink references
    - Organization branding and OCR address verification
    - Stripe + BTCPay Server payment settlement
    - Real-time carrier tracking with automated delivery receipts
@@ -63,8 +63,12 @@ ARWEAVE_WALLET_PATH=/path/to/wallet.json
 # Claude
 CLAUDE_API_KEY=sk-ant-...
 
-# Witnet
-WITNET_ENDPOINT=https://dr-api.witnet.io
+# Chainlink (CCIP Routers by network)
+CHAINLINK_ETH_ROUTER=0x80226fc0Ee2b05F1f63473b78bEd9d5C0092d58d
+CHAINLINK_POLYGON_ROUTER=0x70499c328e1e2a3c41ce5d8e3fef69911bc8248e
+CHAINLINK_AVAX_ROUTER=0xF694E193200268f9666cD1DFbDea7D7B29a1ccd1
+CHAINLINK_LINK_TOKEN_ADDRESS=0x779877A7B0D9C06BeEFEAA6CfAFFF0b847F84F76
+CHAINLINK_FUNCTIONS_ROUTER=0xA9d587a00A31B33E56FF7474d7B7dF8D3d4dAA51
 
 # L1 RPC Endpoints
 ETH_RPC_URL=https://eth.llamarpc.com
@@ -124,7 +128,7 @@ npm run cli -- mail receipt job-abc123 --format pdf > delivery_receipt.pdf
 - ✅ Upload documents to Arweave (immutable, permanent storage)
 - ✅ Semantic analysis via Claude (document type, entities, summary)
 - ✅ Cryptographic hashing (SHA-256 deterministic proof)
-- ✅ Witnet oracle integration (decentralized witnesses)
+- ✅ Chainlink oracle integration (decentralized witnesses via CCIP)
 - ✅ Multichain relay (Ethereum, Polygon, Avalanche proof)
 - ✅ Zero-knowledge verification (verify without original file)
 
@@ -145,14 +149,14 @@ npm run cli -- mail receipt job-abc123 --format pdf > delivery_receipt.pdf
 
 ### Phase 4: Physical Mail Integration ⭐ **NEW**
 - ✅ PostGrid Print & Mail API full integration
-- ✅ Cryptographic QR codes (Arweave + Witnet references embedded)
+- ✅ Cryptographic QR codes (Arweave + Chainlink references embedded)
 - ✅ Organization branding per-job and defaults
 - ✅ OCR address detection + PostGrid verification
 - ✅ Confirmation workflow (CLI + WebUI)
 - ✅ Stripe card + BTCPay crypto payment settlement
 - ✅ Real-time carrier tracking (USPS, UPS, FedEx, etc.)
 - ✅ Automated delivery receipts with cryptographic proof
-- ✅ Full lifecycle audit trail on Arweave + Witnet
+- ✅ Full lifecycle audit trail on Arweave + Chainlink
 - ✅ Claude AI metadata enrichment at each stage
 
 ---
@@ -160,33 +164,33 @@ npm run cli -- mail receipt job-abc123 --format pdf > delivery_receipt.pdf
 ## 🏗️ Architecture Overview
 
 ```
-┌──────────────────────────────────────────────────────┐
-│ User Interface                                       │
-├──────────────────────────────────────────────────────┤
-│ Phase 1: CLI (stamp, verify, export)                 │
-│ Phase 2: React Dashboard (web UI)                    │
-│ Phase 3: Monitoring Portal (Grafana/custom)          │
-│ Phase 4: Mail Manager UI (job creation, tracking)    │
-└────────────────────────┬─────────────────────────────┘
-                         │
-┌────────────────────────▼─────────────────────────────┐
-│ Application Layer                                    │
-├──────────────────────────────────────────────────────┤
-│ Phase 1: Attestation orchestration                   │
-│ Phase 2: Proof search + verification                 │
-│ Phase 3: Policy engine + audit trail                 │
-│ Phase 4: Mail job orchestration + payment gateway    │
-└────────────────────────┬─────────────────────────────┘
-                         │
-┌────────────────────────▼─────────────────────────────┐
-│ Integration Layer                                    │
-├──────────────────────────────────────────────────────┤
-│ Arweave (storage) | Claude (analysis)                │
-│ Witnet (oracle)  | Ethereum/Polygon/Avax             │
-│ Chokidar (file watching) | PostGrid (print/mail)     │
-│ Stripe (payments) | BTCPay (crypto) | OCR service    │
-│ Carrier APIs (tracking)                              │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│ User Interface                               │
+├──────────────────────────────────────────────┤
+│ Phase 1: CLI (stamp, verify, export)         │
+│ Phase 2: React Dashboard (web UI)            │
+│ Phase 3: Monitoring Portal (Grafana/custom)  │
+│ Phase 4: Mail Manager UI (job creation, tracking)
+└────────────────────┬──────────────────────────┘
+                     │
+┌────────────────────▼──────────────────────────┐
+│ Application Layer                            │
+├──────────────────────────────────────────────┤
+│ Phase 1: Attestation orchestration           │
+│ Phase 2: Proof search + verification         │
+│ Phase 3: Policy engine + audit trail         │
+│ Phase 4: Mail job orchestration + payment    │
+└────────────────────┬──────────────────────────┘
+                     │
+┌────────────────────▼──────────────────────────┐
+│ Integration Layer                            │
+├──────────────────────────────────────────────┤
+│ Arweave (storage) | Claude (analysis)        │
+│ Chainlink (oracle)| Ethereum/Polygon/Avax    │
+│ Chokidar (file watching) | PostGrid (print) │
+│ Stripe (payments) | BTCPay (crypto) | OCR    │
+│ Carrier APIs (tracking)                     │
+└──────────────────────────────────────────────┘
 ```
 
 ### Phase 4 Data Flow: Document → Blockchain → Physical Mail
@@ -197,8 +201,8 @@ Digital Document (PDF, image, etc.)
 [Phase 1] Upload to Arweave + analyze with Claude
   → Arweave URL + metadata hash
   ↓
-[Phase 1] Submit to Witnet oracle
-  → Witnet attestation ID
+[Phase 1] Submit to Chainlink oracle
+  → Chainlink proof ID
   ↓
 [Phase 1] Relay to L1 blockchains (Ethereum/Polygon/Avax)
   → Chain-specific transaction IDs
@@ -211,7 +215,7 @@ Digital Document (PDF, image, etc.)
   → Surface corrections/errors
   ↓
 [Phase 4] Generate cryptographic QR code
-  → Encodes: Arweave URL + Witnet ID + job reference
+  → Encodes: Arweave URL + Chainlink proof ID + job reference
   → Claude generates semantic metadata (summary, risk flags)
   ↓
 [Phase 4] Create confirmation summary
@@ -228,15 +232,15 @@ Digital Document (PDF, image, etc.)
   → PostGrid returns carrier + tracking numbers
   ↓
 [Phase 4] Create mailing receipt PDF
-  → Document list with Arweave + Witnet references
+  → Document list with Arweave + Chainlink references
   → QR codes with embedded tracking info
   → Payment details (card masked or crypto tx hash)
-  → Upload receipt to Arweave + attest on Witnet
+  → Upload receipt to Arweave + attest on Chainlink
   ↓
 [Phase 4] Background service polls carrier tracking
   → Every 12 hours until delivery
   → Generate delivery receipt on confirmation
-  → Upload delivery receipt to Arweave + attest on Witnet
+  → Upload delivery receipt to Arweave + attest on Chainlink
   ↓
 Final State: Complete cryptographic chain
   Digital document → Blockchain proof → Physical artifact → Delivery proof
@@ -252,6 +256,7 @@ Final State: Complete cryptographic chain
 - **[AGENTS.md](./AGENTS.md)** – Module boundaries, AI agent guidance, testing patterns
 - **[CLAUDE.md](./CLAUDE.md)** – Claude integration, prompt templates, PII handling
 - **[SECURITY.md](./SECURITY.md)** – Threat model, cryptographic guarantees, security practices
+- **[CHAINLINK_INTEGRATION.md](./CHAINLINK_INTEGRATION.md)** – Chainlink oracle setup, CCIP configuration, smart contracts
 
 ### Phase 4 Specific Documentation ⭐ **NEW**
 - **[POSTGRID_INTEGRATION.md](./POSTGRID_INTEGRATION.md)** – PostGrid API integration, job submission, tracking
@@ -308,7 +313,7 @@ ArweaveStamp includes a comprehensive Claude Code integration with **16 custom c
 ### Specialized Skills (`.claude/skills/`)
 
 **Core Domain Skills**:
-- `blockchain-attestation-skill` – Arweave upload → Claude analysis → Witnet attestation → L1 relay
+- `blockchain-attestation-skill` – Arweave upload → Claude analysis → Chainlink attestation → L1 relay
 - `document-analysis-skill` – Claude-powered classification, entity extraction, summarization
 - `crypto-hashing-skill` – SHA-256 hashing, determinism verification, document ID assembly
 
@@ -322,7 +327,7 @@ ArweaveStamp includes a comprehensive Claude Code integration with **16 custom c
 - `audit-trail-skill` – Merkle tree construction, blockchain anchoring (Phase 3)
 
 **Utility Skills**:
-- `integration-testing-skill` – External service testing (Arweave, Claude, Witnet, PostGrid)
+- `integration-testing-skill` – External service testing (Arweave, Claude, Chainlink, PostGrid)
 - `phase-validation-skill` – Phase completion criteria validation
 - `environment-setup-skill` – Developer environment automation
 - `proof-verification-skill` – Independent proof package verification
@@ -487,9 +492,9 @@ stamp mail resend-receipt <jobId> --email recipient@example.com
 |-----------|------|
 | Arweave storage (1MB) | ~$0.01 |
 | Claude analysis | ~$0.30 |
-| Witnet oracle | ~$0.05 |
+| Chainlink oracle | ~$0.10-0.50 |
 | L1 relays (3 chains) | ~$0.50+ (varies) |
-| **Total per doc** | **~$0.85-1.50** |
+| **Total per doc** | **~$0.91-1.80** |
 
 ### Phase 4 (Per Mailed Document)
 | Component | Typical Cost |
@@ -500,14 +505,14 @@ stamp mail resend-receipt <jobId> --email recipient@example.com
 | Claude metadata enrichment | ~$0.10 |
 | QR code generation + embedding | <$0.01 |
 | Receipt PDF generation + upload | ~$0.05 |
-| Witnet receipt attestation | ~$0.05 |
+| Chainlink receipt attestation | ~$0.10-0.50 |
 | Receipt storage on Arweave (200KB) | ~$0.002 |
 | Payment processing (Stripe 2.9% + $0.30) | ~3.5% of job cost |
 | Carrier tracking (12-24 polls) | <$0.01 |
 | Delivery receipt generation + attestation | ~$0.10 |
-| **Total per mailed document** | **~$1.50-2.50** |
+| **Total per mailed document** | **~$1.60-2.80** |
 
-**Phase 4 Monthly Estimate** (1000 mailed documents): $1,500-2,500
+**Phase 4 Monthly Estimate** (1000 mailed documents): $1,600-2,800
 
 ---
 
@@ -523,7 +528,7 @@ stamp mail resend-receipt <jobId> --email recipient@example.com
 | QR Code Payload | HMAC-SHA256 | Tamper detection |
 | Receipt PDF | Digital signature | Certificate authority signed |
 | Arweave Storage | PoW consensus | Network security |
-| Witnet Oracle | Multisig + stake | Majority of witnesses honest |
+| Chainlink Oracle | CCIP + multiple nodes | Decentralized witnesses |
 | L1 Blockchains | PoW (Eth/Avax) / PoS (Polygon) | Network consensus |
 
 ### Phase 4: Physical Mail Chain of Custody
@@ -532,8 +537,8 @@ stamp mail resend-receipt <jobId> --email recipient@example.com
 Document (digital)
   ↓ [Cryptographic hash + Arweave upload]
 Arweave transaction ID (immutable timestamp)
-  ↓ [Witnet attestation]
-Witnet report ID (decentralized witness)
+  ↓ [Chainlink oracle attestation]
+Chainlink proof ID (decentralized confirmation)
   ↓ [L1 blockchain relay]
 Smart contract event (blockchain consensus)
   ↓ [QR code generation]
@@ -565,6 +570,7 @@ Anyone can verify a mailed document's entire lifecycle without:
 1. **Read Documentation**
    - Start: [README.md](./README.md) (this file)
    - Architecture: [ARCHITECTURE.md](./ARCHITECTURE.md)
+   - Chainlink: [CHAINLINK_INTEGRATION.md](./CHAINLINK_INTEGRATION.md)
    - Mail Integration: [POSTGRID_INTEGRATION.md](./POSTGRID_INTEGRATION.md)
    - Payment: [MAIL_PAYMENT.md](./MAIL_PAYMENT.md)
    - Modules: [AGENTS.md](./AGENTS.md)
@@ -611,7 +617,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 - ✅ QR codes generated and embedded correctly
 - ✅ Address verification OCR working accurately
 - ✅ Carrier tracking polls retrieving data
-- ✅ Delivery receipts generating + attesting on Witnet
+- ✅ Delivery receipts generating + attesting on Chainlink
 - ✅ >85% test coverage achieved
 - ✅ Zero critical security issues
 - ✅ Full lifecycle audit trail verifiable
@@ -622,7 +628,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 
 ### Official Documentation
 - [Arweave Docs](https://docs.arweave.org/)
-- [Witnet Docs](https://docs.witnet.io/)
+- [Chainlink Docs](https://docs.chain.link/)
+- [Chainlink CCIP](https://docs.chain.link/ccip)
 - [PostGrid API Docs](https://docs.postgrid.com/)
 - [Stripe API Docs](https://stripe.com/docs/api)
 - [BTCPay Server Docs](https://docs.btcpayserver.org/)
@@ -630,7 +637,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 
 ### Community & Support
 - Arweave Discord
-- Witnet Community Forum
+- Chainlink Discord
 - PostGrid Community
 - Anthropic Discord
 
@@ -672,7 +679,7 @@ A: Blockchain proves digital authenticity with immutable timestamping. Physical 
 A: Carrier tracking provides real-time status. If lost/undeliverable, you have PostGrid + carrier records. Full lifecycle is auditable on Arweave.
 
 **Q: Can a recipient verify the document is authentic?**
-A: Yes. Scan the QR code → links to Arweave + Witnet data. No software needed—just a smartphone QR reader and web browser.
+A: Yes. Scan the QR code → links to Arweave + Chainlink data. No software needed—just a smartphone QR reader and web browser.
 
 **Q: Does PostGrid see the documents?**
 A: PostGrid sees the print-ready PDF only. No access to your private data. Mailing address is provided by you; OCR is client-side.
@@ -681,13 +688,16 @@ A: PostGrid sees the print-ready PDF only. No access to your private data. Maili
 A: Phase 4 supports Stripe (cards: Visa, Mastercard, Amex) and BTCPay Server (crypto: BTC, ETH, USDC, USDT, XMR, etc.).
 
 **Q: How does payment reconciliation work?**
-A: Stripe: immediate settlement. BTCPay: awaits 1-3 block confirmations (configurable). Both create attestations on Arweave.
+A: Stripe: immediate settlement. BTCPay: awaits 1-3 block confirmations (configurable). Both create attestations on Arweave + Chainlink.
 
 **Q: Can I white-label the branding?**
 A: Yes. Per-job logo, footer, sender info overrides. Defaults set at organization level.
 
 **Q: How real-time is carrier tracking?**
 A: Background service polls every 12 hours by default (configurable). Typical carriers (USPS, UPS, FedEx) update 1-2x daily.
+
+**Q: Why Chainlink instead of Witnet?**
+A: Chainlink offers superior market capitalization ($38B+ total value secured), institutional adoption, proven reliability since 2017, and native multi-chain support via CCIP. This ensures long-term oracle network viability.
 
 ---
 
@@ -711,4 +721,5 @@ Proceed to Phase 4: `npm run cli -- mail create --help`
 
 **Last Updated**: December 2025  
 **Phase**: Ready for Phase 4 Development (Weeks 25-40)  
+**Oracle**: Chainlink (migrated from Witnet)  
 **Next Step**: Assign Phase 4 developers, set up PostGrid sandbox, begin Week 25-26 scaffolding
